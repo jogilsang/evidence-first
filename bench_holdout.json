@@ -1,0 +1,177 @@
+{
+  "case_set": "holdout",
+  "gate": {
+    "n": 20,
+    "accuracy": 1.0,
+    "false_allow": [],
+    "false_block": [],
+    "errors": [],
+    "latency_ms_median": 147.8,
+    "latency_ms_p95": 171.7,
+    "engine": "decider-2b-local",
+    "input_tokens": 8040,
+    "api_cost_usd": 0.0,
+    "rows": [
+      {
+        "id": "hv-rb-ok-1",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'rollback'",
+        "latency_ms": 171.66
+      },
+      {
+        "id": "hv-rb-ok-2",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'rollback'",
+        "latency_ms": 157.77
+      },
+      {
+        "id": "hv-rb-ok-3",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'rollback'",
+        "latency_ms": 145.28
+      },
+      {
+        "id": "hv-rb-no-1",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'traffic_surge', not 'bad_deploy', so 'rollback' is not supported by the evidence",
+        "latency_ms": 143.01
+      },
+      {
+        "id": "hv-rb-no-2",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "a downstream dependency is saturated or failing; 'rollback' does not address that -- fix the dependency first",
+        "latency_ms": 147.52
+      },
+      {
+        "id": "hv-rb-no-3",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'unknown', not 'bad_deploy', so 'rollback' is not supported by the evidence",
+        "latency_ms": 150.56
+      },
+      {
+        "id": "hv-rb-no-4",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'unknown', not 'bad_deploy', so 'rollback' is not supported by the evidence",
+        "latency_ms": 152.91
+      },
+      {
+        "id": "hv-rb-no-5",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "this action was already tried and the problem persists; do not repeat it, look for another cause",
+        "latency_ms": 146.22
+      },
+      {
+        "id": "hv-so-ok-1",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'scale_out'",
+        "latency_ms": 145.05
+      },
+      {
+        "id": "hv-so-ok-2",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'scale_out'",
+        "latency_ms": 140.33
+      },
+      {
+        "id": "hv-so-ok-3",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'scale_out'",
+        "latency_ms": 143.05
+      },
+      {
+        "id": "hv-so-no-1",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'unknown', not 'traffic_surge', so 'scale_out' is not supported by the evidence",
+        "latency_ms": 183.45
+      },
+      {
+        "id": "hv-so-no-2",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "a downstream dependency is saturated or failing; 'scale_out' does not address that -- fix the dependency first",
+        "latency_ms": 148.09
+      },
+      {
+        "id": "hv-so-no-3",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'unknown', not 'traffic_surge', so 'scale_out' is not supported by the evidence",
+        "latency_ms": 150.3
+      },
+      {
+        "id": "hv-so-no-4",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "this action was already tried and the problem persists; do not repeat it, look for another cause",
+        "latency_ms": 155.25
+      },
+      {
+        "id": "hv-so-no-5",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'unknown', not 'traffic_surge', so 'scale_out' is not supported by the evidence",
+        "latency_ms": 161.34
+      },
+      {
+        "id": "hv2-rb-ok-1",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'rollback'",
+        "latency_ms": 150.6
+      },
+      {
+        "id": "hv2-rb-no-1",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'unknown', not 'bad_deploy', so 'rollback' is not supported by the evidence",
+        "latency_ms": 147.48
+      },
+      {
+        "id": "hv2-so-ok-1",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'scale_out'",
+        "latency_ms": 144.98
+      },
+      {
+        "id": "hv2-so-no-1",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "this action was already tried and the problem persists; do not repeat it, look for another cause",
+        "latency_ms": 142.62
+      }
+    ]
+  }
+}

@@ -1,0 +1,367 @@
+{
+  "gate": {
+    "n": 20,
+    "accuracy": 0.9,
+    "false_allow": [
+      "rb-no-2",
+      "so-no-5"
+    ],
+    "false_block": [],
+    "latency_ms_median": 104.7,
+    "latency_ms_p95": 110.3,
+    "engine": "decider-2b-local",
+    "input_tokens": 5029,
+    "api_cost_usd": 0.0,
+    "rows": [
+      {
+        "id": "rb-ok-1",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'rollback'",
+        "latency_ms": 488.85
+      },
+      {
+        "id": "rb-ok-2",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'rollback'",
+        "latency_ms": 100.69
+      },
+      {
+        "id": "rb-ok-3",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'rollback'",
+        "latency_ms": 107.96
+      },
+      {
+        "id": "rb-ok-4",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'rollback'",
+        "latency_ms": 110.34
+      },
+      {
+        "id": "rb-no-1",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'traffic_surge', not 'bad_deploy', so 'rollback' is not supported by the evidence",
+        "latency_ms": 104.13
+      },
+      {
+        "id": "rb-no-2",
+        "expected": false,
+        "got": true,
+        "ok": false,
+        "reason": "evidence supports 'rollback'",
+        "latency_ms": 105.13
+      },
+      {
+        "id": "rb-no-3",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'dependency_failure', not 'bad_deploy', so 'rollback' is not supported by the evidence",
+        "latency_ms": 98.94
+      },
+      {
+        "id": "rb-no-4",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'unknown', not 'bad_deploy', so 'rollback' is not supported by the evidence",
+        "latency_ms": 100.48
+      },
+      {
+        "id": "rb-no-5",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "a fix was already applied and the problem persists; do not repeat it, look for another cause",
+        "latency_ms": 100.09
+      },
+      {
+        "id": "rb-no-6",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "a fix was already applied and the problem persists; do not repeat it, look for another cause",
+        "latency_ms": 106.25
+      },
+      {
+        "id": "so-ok-1",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'scale_out'",
+        "latency_ms": 105.17
+      },
+      {
+        "id": "so-ok-2",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'scale_out'",
+        "latency_ms": 97.92
+      },
+      {
+        "id": "so-ok-3",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'scale_out'",
+        "latency_ms": 105.03
+      },
+      {
+        "id": "so-ok-4",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "evidence supports 'scale_out'",
+        "latency_ms": 104.99
+      },
+      {
+        "id": "so-no-1",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'unknown', not 'traffic_surge', so 'scale_out' is not supported by the evidence",
+        "latency_ms": 104.36
+      },
+      {
+        "id": "so-no-2",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'dependency_failure', not 'traffic_surge', so 'scale_out' is not supported by the evidence",
+        "latency_ms": 102.85
+      },
+      {
+        "id": "so-no-3",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'dependency_failure', not 'traffic_surge', so 'scale_out' is not supported by the evidence",
+        "latency_ms": 97.2
+      },
+      {
+        "id": "so-no-4",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'unknown', not 'traffic_surge', so 'scale_out' is not supported by the evidence",
+        "latency_ms": 105.48
+      },
+      {
+        "id": "so-no-5",
+        "expected": false,
+        "got": true,
+        "ok": false,
+        "reason": "evidence supports 'scale_out'",
+        "latency_ms": 102.73
+      },
+      {
+        "id": "so-no-6",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "the log points to 'dependency_failure', not 'traffic_surge', so 'scale_out' is not supported by the evidence",
+        "latency_ms": 105.57
+      }
+    ]
+  },
+  "baseline": {
+    "n": 20,
+    "accuracy": 1.0,
+    "false_allow": [],
+    "false_block": [],
+    "latency_ms_median": 1082.5,
+    "latency_ms_p95": 1506.7,
+    "engine": "us.anthropic.claude-haiku-4-5-20251001-v1:0",
+    "input_tokens": 4120,
+    "output_tokens": 960,
+    "api_cost_usd": 0.00892,
+    "rows": [
+      {
+        "id": "rb-ok-1",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "Deploy v42 directly preceded the 5xx spike and error rate increase, indicating a bad deploy that rollback can fix.",
+        "latency_ms": 2006.69
+      },
+      {
+        "id": "rb-ok-2",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "Config change at 09:15 directly preceded checkout errors at 09:17 with normal traffic and healthy DB, indicating the config change is the root cause.",
+        "latency_ms": 1088.56
+      },
+      {
+        "id": "rb-ok-3",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "Log shows crash-looping OOMKilled tasks immediately after deploy v108, indicating a bad deploy is the root cause, which rollback fixes.",
+        "latency_ms": 1061.11
+      },
+      {
+        "id": "rb-ok-4",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "Log shows latency spike and high error rate immediately after container image rollout at 11:05, with normal resource metrics, indicating a bad deploy as root cause.",
+        "latency_ms": 1160.84
+      },
+      {
+        "id": "rb-no-1",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "Root cause is a traffic surge from marketing campaign, not a bad deploy; scale_out is the appropriate fix, not rollback.",
+        "latency_ms": 1083.56
+      },
+      {
+        "id": "rb-no-2",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "Root cause is resource saturation (database connections exhausted), not a bad deploy; rollback won't fix the underlying connection pool issue.",
+        "latency_ms": 1081.43
+      },
+      {
+        "id": "rb-no-3",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "Root cause is a failing dependency (Redis cache unreachable), not a bad deploy, so rollback is not justified.",
+        "latency_ms": 1045.1
+      },
+      {
+        "id": "rb-no-4",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "Root cause is unclear and deploy was 1 week ago with no recent changes, so rollback is not justified.",
+        "latency_ms": 1001.27
+      },
+      {
+        "id": "rb-no-5",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "Rollback was already applied at 14:02 but the problem persists; root cause is database connection saturation, not the deploy.",
+        "latency_ms": 1054.6
+      },
+      {
+        "id": "rb-no-6",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "Rollback was already attempted at 10:30 and errors persisted, indicating the root cause is the failing downstream payment API (503), not the deploy.",
+        "latency_ms": 1145.38
+      },
+      {
+        "id": "so-ok-1",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "Request rate is 4x normal due to campaign, causing CPU saturation at 92% across all tasks, which scale_out directly addresses.",
+        "latency_ms": 1035.94
+      },
+      {
+        "id": "so-ok-2",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "Log shows traffic surge (6x normal) causing resource saturation (95% CPU, rising queue depth) with timeout errors, which scale_out directly addresses.",
+        "latency_ms": 1075.42
+      },
+      {
+        "id": "so-ok-3",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "Request rate tripled during lunch peak causing CPU saturation at 88%, indicating resource exhaustion that scaling out would address.",
+        "latency_ms": 1020.7
+      },
+      {
+        "id": "so-ok-4",
+        "expected": true,
+        "got": true,
+        "ok": true,
+        "reason": "Traffic surge during Black Friday (8x increase) saturated CPU resources (97%), causing timeouts, which scale_out directly addresses.",
+        "latency_ms": 1131.52
+      },
+      {
+        "id": "so-no-1",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "Root cause is a bad deploy (v42 at 14:02), not resource saturation, so rollback is needed, not scale_out.",
+        "latency_ms": 1096.51
+      },
+      {
+        "id": "so-no-2",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "Root cause is connection pool exhaustion (likely a code issue from the deploy 2 days ago), not traffic surge, so scale_out won't fix it; rollback or connection pool tuning is needed instead.",
+        "latency_ms": 1340.3
+      },
+      {
+        "id": "so-no-3",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "Root cause is a failing dependency (Redis unreachable), not a traffic surge, so scale_out will not resolve the issue.",
+        "latency_ms": 972.78
+      },
+      {
+        "id": "so-no-4",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "Root cause is unclear and resources are not saturated (CPU 25%, memory 40%), so scaling out is not justified.",
+        "latency_ms": 1084.51
+      },
+      {
+        "id": "so-no-5",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "Root cause is database connection exhaustion, not resource saturation from traffic surge; scaling out won't help if the bottleneck is database connections.",
+        "latency_ms": 1506.65
+      },
+      {
+        "id": "so-no-6",
+        "expected": false,
+        "got": false,
+        "ok": true,
+        "reason": "Root cause is a failing downstream auth service (503), not resource saturation, so scaling out won't fix the errors.",
+        "latency_ms": 1051.23
+      }
+    ]
+  },
+  "comparison": {
+    "accuracy": {
+      "gate": 0.9,
+      "baseline": 1.0
+    },
+    "latency_ms_median": {
+      "gate": 104.7,
+      "baseline": 1082.5
+    },
+    "api_cost_usd_total": {
+      "gate": 0.0,
+      "baseline": 0.00892
+    },
+    "note": "Decider runs locally: $0 API cost. Baseline billed per token (Haiku 4.5 $1/$5 per 1M in/out, us-east-1, verify before quoting)."
+  }
+}

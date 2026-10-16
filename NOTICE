@@ -1,0 +1,9 @@
+evidence-first
+Copyright 2026 the author(s).
+
+This product includes software adapted from strands-decider
+(https://github.com/strands-labs/strands-decider), licensed under the Apache License 2.0:
+  - rollback_gate/client.py is adapted from examples/strands/_client.py.
+
+Strands Decider 2B model weights are distributed by their authors under their own terms
+(Apache-2.0 at the time of writing); they are not included in this repository.

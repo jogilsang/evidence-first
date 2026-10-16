@@ -1,0 +1,67 @@
+{
+  "title": "DeciderGate — 에이전트 조치 전 근거 검증 가드",
+  "subtitle": "Strands Decider 2B + before_tool_call + Amazon Bedrock",
+  "dir": "row",
+  "legend": {"primary": "조치 제안 / 흐름", "secondary": "분류 질문·응답"},
+  "step_slides": true,
+  "layout": [
+    {
+      "group": "generic",
+      "label": "Operations (On-call)",
+      "dir": "col",
+      "children": [
+        {"id": "incident", "icon": "amazon-cloudwatch", "label": "Incident\n(5xx / 지표)"},
+        {"id": "agent", "icon": "amazon-q", "label": "SRE Agent\n(Strands)"}
+      ]
+    },
+    {
+      "group": "aws-cloud",
+      "label": "AWS Cloud",
+      "dir": "col",
+      "children": [
+        {"id": "bedrock", "icon": "amazon-bedrock", "label": "Amazon Bedrock\n(에이전트 LLM)"}
+      ]
+    },
+    {
+      "group": "highlight",
+      "label": "DeciderGate  (before_tool_call · 로컬)",
+      "dir": "col",
+      "children": [
+        {"id": "gate", "icon": "aws-lambda", "label": "Gate\nbefore_tool_call"},
+        {
+          "dir": "row",
+          "children": [
+            {"id": "decider", "icon": "amazon-bedrock", "label": "Decider 2B\n(로컬·MLX)"},
+            {"id": "policy", "icon": "aws-identity-and-access-management-iam", "label": "Policy\n(코드·임계값)"}
+          ]
+        }
+      ]
+    },
+    {
+      "group": "generic",
+      "label": "Remediation",
+      "dir": "col",
+      "children": [
+        {"id": "rollback", "icon": "amazon-elastic-compute-cloud-amazon-ec2", "label": "rollback\n(bad deploy)"},
+        {"id": "scaleout", "icon": "amazon-ec2-auto-scaling", "label": "scale_out\n(traffic surge)"}
+      ]
+    }
+  ],
+  "edges": [
+    {"from": "incident", "to": "agent", "style": "primary", "step": 1, "label": "장애 신호"},
+    {"from": "agent", "to": "bedrock", "style": "primary", "step": 1, "label": "추론"},
+    {"from": "bedrock", "to": "gate", "style": "primary", "step": 1, "label": "조치 제안"},
+    {"from": "gate", "to": "decider", "style": "secondary", "step": 2, "label": "좁은 질문 3"},
+    {"from": "decider", "to": "policy", "style": "secondary", "step": 2, "label": "확률값"},
+    {"from": "policy", "to": "rollback", "style": "primary", "step": 3, "label": "Proceed"},
+    {"from": "policy", "to": "scaleout", "style": "primary", "step": 3, "label": "Proceed"},
+    {"from": "gate", "to": "agent", "style": "alert", "step": 4, "label": "Guide (근거 없음)", "from_side": "bottom", "to_side": "bottom"}
+  ],
+  "steps": [
+    {"no": 1, "title": "조치 제안", "desc": "장애 신호를 받은 SRE 에이전트가 Amazon Bedrock으로 추론해 rollback 또는 scale_out을 제안한다. 툴이 실행되기 직전 상태.", "highlight": ["rollback", "scaleout"]},
+    {"no": 2, "title": "분류 질문", "desc": "before_tool_call 가드가 조치를 가로채, 로컬 Decider 2B에 좁은 yes/no·분류 질문 3개(원인·반복 여부·의존성 포화)를 보낸다. 모델은 결정하지 않고 분류만 한다.", "highlight": ["policy"]},
+    {"no": 3, "title": "코드가 판정", "desc": "Policy(코드)가 확률값과 임계값으로 Proceed/Block을 결정한다. 근거가 맞으면 Proceed로 조치를 실행한다. ~134ms·호출당 $0(로컬).", "highlight": ["rollback", "scaleout"]},
+    {"no": 4, "title": "되돌림(Guide)", "desc": "근거가 약하면 Block이 아니라 Guide로 에이전트에 이유를 돌려준다. 에이전트는 원인을 다시 보고 올바른 조치를 고르거나 사람을 부른다.", "highlight": ["agent"]}
+  ],
+  "notes": "model classifies, code decides. Decider 2B는 로컬(MLX)에서 분류만, 결정은 Policy 코드. Guide=거부가 아니라 교정."
+}

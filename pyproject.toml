@@ -1,0 +1,19 @@
+[project]
+name = "evidence-first"
+version = "0.1.0"
+description = "DeciderGate: a reusable guardrail where a local Strands Decider 2B classifies and plain code decides"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "Apache-2.0" }
+dependencies = ["strands-agents", "boto3"]
+
+[project.optional-dependencies]
+otel = ["opentelemetry-api", "opentelemetry-sdk"]
+dev = ["pytest"]
+
+[tool.setuptools]
+packages = ["rollback_gate"]
+
+[tool.pytest.ini_options]
+pythonpath = ["."]
+testpaths = ["tests"]
