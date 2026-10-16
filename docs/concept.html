@@ -1,0 +1,43 @@
+<!doctype html><html><head><meta charset="utf-8"><style>
+*{box-sizing:border-box;margin:0}
+body{width:1600px;height:900px;font-family:"Helvetica Neue",Arial,sans-serif;color:#fff;background:radial-gradient(1200px 700px at 85% -10%,#2b2fa8 0%,#10124a 45%,#0a0b2e 100%);padding:40px 72px;position:relative;overflow:hidden}
+.tag{display:inline-block;font-size:20px;color:#bfc3ff;border:1px solid #4a4fb8;border-radius:999px;padding:6px 16px;margin-right:10px}
+h1{font-size:64px;font-weight:800;letter-spacing:-1px;margin-top:14px}
+h1 span{color:#fdb24d}
+.lead{font-size:25px;color:#c9ccff;margin-top:8px;max-width:1350px;line-height:1.32}
+.flow{display:flex;align-items:stretch;gap:18px;margin-top:26px}
+.card{flex:1;background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.16);border-radius:20px;padding:20px 24px}
+.card .n{width:38px;height:38px;border-radius:50%;background:#3c41e6;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:24px}
+.card h3{font-size:26px;margin:12px 0 6px}
+.card p{font-size:20px;color:#c9ccff;line-height:1.4}
+.card b{color:#fff}
+.arrow{align-self:center;font-size:44px;color:#fdb24d}
+.verdicts{display:flex;gap:10px;margin-top:14px}
+.v{font-weight:800;font-size:20px;border-radius:8px;padding:6px 14px}
+.allow{background:#133d27;color:#4ade80}.block{background:#4a1a22;color:#ff6b6b}.esc{background:#4a3a14;color:#fdb24d}
+.example{margin-top:30px;background:#0d0f3c;border:1px solid #2f33a0;border-radius:18px;padding:14px 24px;font-family:Menlo,monospace;font-size:17px;line-height:1.5;color:#dfe1ff}
+.example .r{color:#ff6b6b;font-weight:700}.example .d{color:#8f93c8}
+.stats{position:absolute;left:72px;right:72px;bottom:34px;display:flex;gap:16px}
+.stat{flex:1;text-align:center;background:rgba(255,255,255,.07);border-radius:16px;padding:12px 8px}
+.stat .big{font-size:38px;font-weight:800;color:#fdb24d}.stat .s{font-size:17px;color:#c9ccff;margin-top:2px}
+</style></head><body>
+<span class="tag">#strands-decider-2b</span><span class="tag">#guardrails</span>
+<h1>evidence-<span>first</span></h1>
+<div class="lead">An AI agent that can act on production is one confident wrong decision away from an outage. DeciderGate is the calm colleague that asks for evidence before the action runs.</div>
+<div class="flow">
+ <div class="card"><div class="n">1</div><h3>The agent proposes</h3><p>An SRE agent wants to <b>roll back</b> or <b>scale out</b>. A Strands <b>before_tool_call</b> hook hands the action to the gate.</p></div>
+ <div class="arrow">&rsaquo;</div>
+ <div class="card"><div class="n">2</div><h3>The model classifies</h3><p>A small <b>local Strands Decider 2B</b> answers three narrow questions: root cause, already tried, dependency saturated. <b>~141 ms, $0 per call.</b></p></div>
+ <div class="arrow">&rsaquo;</div>
+ <div class="card"><div class="n">3</div><h3>The code decides</h3><p>Thresholds live in <b>plain Python</b>, not a prompt. Every verdict comes with a reason you can read.<div class="verdicts"><span class="v allow">ALLOW</span><span class="v block">BLOCK</span><span class="v esc">ESCALATE</span></div></p></div>
+</div>
+<div class="example"><span class="d">agent wants:</span> rollback {'to': 'previous'}&nbsp;&nbsp;<span class="d">(traffic is 4x from a campaign, no deploy for 3 days)</span><br>
+<span class="d">gate:</span> <span class="r">BLOCK</span> the log points to 'traffic_surge', not 'bad_deploy', so 'rollback' is not supported by the evidence</div>
+<div class="stats">
+ <div class="stat"><div class="big">100%</div><div class="s">golden set (22 cases)</div></div>
+ <div class="stat"><div class="big">100%</div><div class="s">held-out (20 cases)</div></div>
+ <div class="stat"><div class="big">~8x</div><div class="s">faster than a Bedrock LLM judge</div></div>
+ <div class="stat"><div class="big">$0</div><div class="s">API cost per decision</div></div>
+ <div class="stat"><div class="big">65</div><div class="s">unit tests, Apache-2.0</div></div>
+</div>
+</body></html>

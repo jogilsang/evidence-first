@@ -2,6 +2,8 @@
 
 > Agent Experience Hackathon: Strands Decider · `#strands-decider-2b` `#guardrails`
 
+![evidence-first concept: the agent proposes, the model classifies, the code decides](docs/concept.png)
+
 An AI agent that can roll back or scale your service is one confident wrong decision away
 from an outage. **DeciderGate** is the calm colleague that asks for evidence first: before
 the agent acts, a small local [Strands Decider 2B](https://github.com/strands-labs/strands-decider) answers a few
@@ -26,6 +28,12 @@ The Decider never picks the action. It answers three typed questions — *what i
 cause*, *was this action already tried*, *is a dependency saturated* — and a `Policy` whose
 thresholds live in code decides. That means you tune the guardrail by editing a few lines
 and re-running a golden set, not by swapping in a bigger model.
+
+## Architecture
+
+![DeciderGate architecture: incident, Strands agent, the local gate with Decider 2B and policy, outcome](docs/architecture.png)
+
+The editable source is `docs/architecture.pptx` (spec: `docs/architecture_spec.json`).
 
 ## Why a gate instead of just asking a big LLM?
 
