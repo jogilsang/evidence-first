@@ -130,12 +130,12 @@ def card_frame(head, sub=None, cap=None, big=True):
     return img
 
 
-def table_frame(rows, cap, head):
+def table_frame(rows, cap, head, cols=(380, 420, 320)):
     img = Image.new("RGB", (W, H), BG)
     d = ImageDraw.Draw(img)
     d.text((70, 60), head, font=F_HEAD, fill=(255, 255, 255))
     x0, y = 70, 150
-    cols = [380, 420, 320]
+    cols = list(cols)
     for r, row in enumerate(rows):
         x = x0
         d.rectangle([x0, y - 6, x0 + sum(cols), y + 44], fill=(40, 43, 100) if r == 0 else (PANEL if r % 2 else BG))
@@ -152,15 +152,61 @@ def run(cmd):
     return subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, check=True).stdout
 
 
+def clean(line: str) -> str:
+    return re.sub(r"\x1b\[\d+m", "", line)
+
+
+def scene_states(lines, cap, holds):
+    """Reveal one demo scene line by line; blank lines add no state. Returns [(image, seconds)]."""
+    shown, out = [], []
+    for i, ln in enumerate(lines):
+        plain = clean(ln)
+        if not plain.strip():
+            continue
+        for w in wrap_spans(parse_ansi(ln), 112):
+            shown.append(w)
+        key = "gate" if plain.strip().startswith("gate:") else "why" if plain.strip().startswith("why:") else "head" if i == 0 else "line"
+        out.append((terminal_frame(shown[-24:], cap), holds[key]))
+    out.append((terminal_frame(shown[-24:], cap), holds["end"]))
+    return out
+
+
+def agent_lines(path: Path):
+    """The real Bedrock-driven agent transcript, reduced to the lines that tell the story."""
+    raw = [clean(x) for x in path.read_text(encoding="utf-8").splitlines()]
+    keep = []
+    for ln in raw:
+        if ln.startswith("INCIDENT:"):
+            keep.append("\x1b[2mincident:\x1b[0m " + ln[len("INCIDENT: "):])
+        elif ln.startswith("[gate]"):
+            body = ln[len("[gate] "):]
+            action, _, scores = body.partition("  cause~")
+            keep.append("\x1b[2magent proposed:\x1b[0m " + action)
+            keep.append("\x1b[2m  gate scores:\x1b[0m cause~" + scores)
+        elif "guide back:" in ln:
+            keep.append("gate: \x1b[31mBLOCK\x1b[0m " + ln.split("guide back: ", 1)[1])
+    i = next((k for k, x in enumerate(raw) if "what the agent finally replied" in x), None)
+    if i is not None:
+        reply = [x.replace("**", "") for x in raw[i + 1:] if x.strip()][:4]
+        keep.append("")
+        keep.append("\x1b[1magent after the gate's reason:\x1b[0m")
+        keep += ["  " + x for x in reply]
+    return keep
+
+
 def build(out_mp4: Path):
     py = sys.executable
     demo = run([py, "demo.py"]).splitlines()
     sweep = run([py, "analysis.py", "sweep"]).splitlines()
     bench = json.load(open(ROOT / "bench_compare.json"))
     ho = json.load(open(ROOT / "bench_holdout.json"))["gate"]
+    ind = json.load(open(ROOT / "evalkit" / "data" / "independent_results.json"))
+    refund = json.load(open(ROOT / "evalkit" / "data" / "refund_results.json"))
     g, b = bench["gate"], bench["baseline"]
+    runs = sorted((ROOT / "record" / "agent_runs").glob("run_*.txt"))
+    blocked = sum(1 for p in runs if "blocked 1 of 1" in p.read_text(encoding="utf-8"))
+    n_tests = int(re.search(r"(\d+) passed", subprocess.run([py, "-m", "pytest", "-q", "tests"], cwd=ROOT, capture_output=True, text=True).stdout).group(1))
 
-    # scene -> (header line index range), parsed from the real output
     scenes, cur = [], None
     for ln in demo:
         if re.match(r"\x1b\[1mScene \d", ln):
@@ -176,76 +222,67 @@ def build(out_mp4: Path):
         "Scene 4, the trap: the database is saturated but reads like a bad deploy. A second question catches it.",
         "Scene 5: same evidence twice. The second rollback is blocked by a rule that spans actions, before the model is asked.",
     ]
-    states = []   # (PIL image, seconds)
-
+    states = []
     states.append((card_frame("DeciderGate", "An AI agent that can act on your infrastructure is one confident wrong decision away from an outage.",
-                              "The danger is not that an agent cannot decide. It decides confidently, and wrong."), 9))
+                              "The danger is not that an agent cannot decide. It decides confidently, and wrong."), 7))
     states.append((card_frame("The model classifies. The code decides.", "A local Strands Decider 2B answers narrow typed questions; plain-Python policy turns them into allow or block.",
-                              "The thresholds live in code, not in a prompt.", big=False), 8))
+                              "The thresholds live in code, not in a prompt.", big=False), 6))
+    code_a = [('QUESTIONS = {', FG), ('    "cause":         Decider.choice("What is the most likely root cause ...", CAUSES),', FG),
+              ('    "dep_saturated": Decider.noul("Is a downstream dependency saturated or failing?", ...),', FG),
+              ('    "already_tried": Decider.noul("Was this same action already tried and it did not help?", ...),', FG), ("}", FG)]
+    code_b = code_a + [("", FG), ("@dataclass(frozen=True)", DIM), ("class Policy:", FG),
+                       ("    min_cause_prob: float = 0.45   # thresholds live here, not in the model", GOLD),
+                       ("    repeat_prob:    float = 0.50", FG), ("    dep_block_prob: float = 0.50", FG)]
+    capc = "gate.py: three narrow questions to the model, and a Policy of thresholds owned by the code."
+    states.append((terminal_frame([[(t, c)] for t, c in code_a], capc, title="rollback_gate/gate.py"), 4))
+    states.append((terminal_frame([[(t, c)] for t, c in code_b], capc, title="rollback_gate/gate.py"), 5))
 
-    code = [
-        ("QUESTIONS = {", FG), ('    "cause":         Decider.choice("What is the most likely root cause ...", CAUSES),', FG),
-        ('    "dep_saturated": Decider.noul("Is a downstream dependency saturated or failing?", ...),', FG),
-        ('    "already_tried": Decider.noul("Was this same action already tried and it did not help?", ...),', FG),
-        ("}", FG), ("", FG),
-        ("@dataclass(frozen=True)", DIM), ("class Policy:", FG),
-        ("    min_cause_prob: float = 0.45   # thresholds live here, not in the model", GOLD),
-        ("    repeat_prob:    float = 0.50", FG), ("    dep_block_prob: float = 0.50", FG),
-    ]
-    st = []
-    for i in range(1, len(code) + 1):
-        st.append(terminal_frame([[(t, c)] for t, c in code[:i]],
-                                 "gate.py: three narrow questions to the model, and a Policy of thresholds owned by the code.",
-                                 title="rollback_gate/gate.py"))
-    for i, im in enumerate(st):
-        states.append((im, 1.1 if i < len(st) - 1 else 5))
-
+    holds = {"head": 1.0, "line": 1.5, "gate": 2.4, "why": 2.8, "end": 1.0}
     for sc, cap in zip(scenes[:4], caps[:4]):
-        shown = []
-        for i, ln in enumerate(sc):
-            for w in wrap_spans(parse_ansi(ln), 112):
-                shown.append(w)
-            hold = 1.0
-            plain = re.sub(r"\x1b\[\d+m", "", ln)
-            if plain.strip().startswith("gate:"):
-                hold = 3.0
-            elif plain.strip().startswith("why:"):
-                hold = 4.0
-            elif i == 0:
-                hold = 1.2
-            else:
-                hold = 2.2
-            states.append((terminal_frame(shown[-24:], cap), hold))
-        states.append((terminal_frame(shown[-24:], cap), 2.0))
-
-    sc5 = scenes[4]
+        states += scene_states(sc, cap, holds)
     shown = []
-    for ln in sc5:
+    for ln in scenes[4]:
+        if not clean(ln).strip():
+            continue
         shown += wrap_spans(parse_ansi(ln), 112)
-        plain = re.sub(r"\x1b\[\d+m", "", ln)
-        states.append((terminal_frame(shown[-24:], caps[4]), 4.5 if "attempt" in plain else 2.2))
-    states.append((terminal_frame(shown[-24:], caps[4]), 3.0))
+        states.append((terminal_frame(shown[-24:], caps[4]), 4.0 if "attempt" in clean(ln) else 1.6))
+    states.append((terminal_frame(shown[-24:], caps[4]), 1.5))
+
+    # the real Bedrock-driven agent (non-deterministic LLM -> rendered from a saved, dated transcript)
+    if runs:
+        capa = (f"Amazon Bedrock (Claude Haiku 4.5) drives the Strands agent; the local Decider gates its tool calls. "
+                f"In {blocked} of {len(runs)} recorded runs the agent reached for a remediation first and the gate sent it back.")
+        title_a = "sre-demo ~/decider-gate $ python agent.py"
+        shown = []
+        for i, ln in enumerate(agent_lines(runs[0])):
+            shown += wrap_spans(parse_ansi(ln), 112)
+            states.append((terminal_frame(shown[-24:], capa, title=title_a), 3.2 if i in (0, 2) else 2.0))
+        states.append((terminal_frame(shown[-24:], capa, title=title_a), 5.0))
 
     ratio = b["latency_ms_median"] / g["latency_ms_median"]
     rows = [["", "DeciderGate (local)", "Bedrock Haiku 4.5"],
             ["accuracy (22 cases)", f"{g['accuracy']*100:.0f}%", f"{b['accuracy']*100:.0f}%"],
             ["latency (median)", f"~{g['latency_ms_median']:.0f} ms", f"~{b['latency_ms_median']:.0f} ms"],
-            ["API cost / 22 cases", "$0", f"~${b['api_cost_usd']:.3f}"],
-            ["held-out (20 cases)", f"{ho['accuracy']*100:.0f}%", "-"]]
-    states.append((table_frame(rows, f"Same accuracy, about {ratio:.0f}x faster, and nothing billed per call: the Decider runs locally.",
-                               "Decider gate vs a general LLM judge, same incidents"), 14))
+            ["API cost / 22 cases", "$0", f"~${b['api_cost_usd']:.3f}"]]
+    states.append((table_frame(rows, f"Same accuracy on our golden set, about {ratio:.0f}x faster, nothing billed per call: the Decider runs locally.",
+                               "Decider gate vs a general LLM judge, same incidents"), 9))
 
-    sw = [re.sub(r"\x1b\[\d+m", "", ln) for ln in sweep if ln.strip()]
-    st = []
-    for i in range(1, len(sw) + 1):
-        st.append(terminal_frame([w for t in sw[:i] for w in wrap_spans([(t, FG)], 112)],
-                                 "Sweeping the main threshold: every value from 0.35 to 0.50 scores 100%. A plateau, not a knife edge.",
-                                 title="python analysis.py sweep"))
-    for i, im in enumerate(st):
-        states.append((im, 0.9 if i < len(st) - 1 else 6))
+    gi, bi = ind["gate"], ind["baseline"]
+    rows2 = [["set", "cases", "gate accuracy"],
+             ["golden (we tuned on it)", f"{g['n']}", f"{g['accuracy']*100:.1f}%"],
+             ["held-out (written by us)", f"{ho['n']}", f"{ho['accuracy']*100:.1f}%"],
+             ["independent (Nova Pro, Llama-verified)", f"{gi['n']}", f"{gi['accuracy']*100:.1f}%"],
+             ["second domain: support refunds", f"{refund['n']}", f"{refund['accuracy']*100:.1f}%"]]
+    states.append((table_frame(rows2, f"On cases we did not write the gate is not 100%: {gi['accuracy']*100:.1f}% (Haiku {bi['accuracy']*100:.1f}%), about "
+                               f"{bi['latency_ms_median']/gi['latency_ms_median']:.0f}x faster. The same gate also guards a second domain.",
+                               "Honest evaluation on independent data", cols=(620, 200, 330)), 13))
 
-    states.append((card_frame("Open source, Apache-2.0", "65 unit tests · golden set and held-out set · temporal policy · audit log. Lift the pattern into your own agent.",
-                              "#strands-decider-2b   #guardrails", big=False), 9))
+    sw = [clean(ln) for ln in sweep if ln.strip()]
+    states.append((terminal_frame([w for t in sw for w in wrap_spans([(t, FG)], 112)],
+                                  "Sweeping the main threshold: every value from 0.35 to 0.50 scores 100% on the tuned sets. A plateau, not a knife edge.",
+                                  title="python analysis.py sweep"), 6))
+    states.append((card_frame("Open source, Apache-2.0", f"{n_tests} unit tests · two domains · independent evaluation · temporal policy · audit log. Lift the pattern into your own agent.",
+                              "#strands-decider-2b   #guardrails", big=False), 7))
 
     tmp = ROOT / "record" / "_frames"
     tmp.mkdir(exist_ok=True)
