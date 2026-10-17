@@ -1,0 +1,72 @@
+[
+ {
+  "id": "ind-rb-dependency-1",
+  "family": "rb-dependency",
+  "action": "rollback",
+  "allow": false,
+  "log": "The feed-service is experiencing high latency and intermittent errors since the last deploy 48 hours ago, with database connection pool exhaustion suspected as the cause.",
+  "label_rationale": "by construction: a downstream dependency is failing (database connection pool exhausted, cache unreachable, or a payment/auth API returning 503); the last deploy was two or more days ago",
+  "generator": "us.amazon.nova-pro-v1:0",
+  "verifier": "us.meta.llama3-3-70b-instruct-v1:0",
+  "generated_on": "2026-10-16",
+  "verifier_allow": true,
+  "verifier_reason": "The problem started after a deploy.",
+  "removed_reason": "generator label and verifier disagree"
+ },
+ {
+  "id": "ind-rb-dependency-3",
+  "family": "rb-dependency",
+  "action": "rollback",
+  "allow": false,
+  "log": "Match-engine performance has degraded significantly with frequent timeouts, correlated with the last deployment 72 hours ago, suggesting problems with the multiplayer game backend services.",
+  "label_rationale": "by construction: a downstream dependency is failing (database connection pool exhausted, cache unreachable, or a payment/auth API returning 503); the last deploy was two or more days ago",
+  "generator": "us.amazon.nova-pro-v1:0",
+  "verifier": "us.meta.llama3-3-70b-instruct-v1:0",
+  "generated_on": "2026-10-16",
+  "verifier_allow": true,
+  "verifier_reason": "The incident log indicates a bad deploy as the root cause.",
+  "removed_reason": "generator label and verifier disagree"
+ },
+ {
+  "id": "ind-rb-dependency-4",
+  "family": "rb-dependency",
+  "action": "rollback",
+  "allow": false,
+  "log": "Payments-gw is intermittently failing transactions with a 503 response from the payment/auth API, an issue that surfaced after the deploy two days prior.",
+  "label_rationale": "by construction: a downstream dependency is failing (database connection pool exhausted, cache unreachable, or a payment/auth API returning 503); the last deploy was two or more days ago",
+  "generator": "us.amazon.nova-pro-v1:0",
+  "verifier": "us.meta.llama3-3-70b-instruct-v1:0",
+  "generated_on": "2026-10-16",
+  "verifier_allow": true,
+  "verifier_reason": "The issue surfaced after a recent deploy.",
+  "removed_reason": "generator label and verifier disagree"
+ },
+ {
+  "id": "ind-so-surge-2",
+  "family": "so-surge",
+  "action": "scale_out",
+  "allow": true,
+  "log": "feed-service is under heavy load with increased CPU utilization and queue lengths, correlating with the live event streaming. No deploys in the last few days, healthy dependencies, timeout errors observed.",
+  "label_rationale": "by construction: a sudden legitimate traffic surge (sale, campaign, live event) saturates CPU or queues on all tasks; the last deploy was several days ago; dependencies are healthy; errors are only timeouts",
+  "generator": "us.amazon.nova-pro-v1:0",
+  "verifier": "us.meta.llama3-3-70b-instruct-v1:0",
+  "generated_on": "2026-10-16",
+  "verifier_allow": false,
+  "verifier_reason": "The root cause is likely a failing dependency or third party, indicated by timeout errors.",
+  "removed_reason": "generator label and verifier disagree"
+ },
+ {
+  "id": "ind-so-surge-3",
+  "family": "so-surge",
+  "action": "scale_out",
+  "allow": true,
+  "log": "ledger-svc is reporting high CPU usage and backlog in processing tasks, coinciding with the launch of a new logistics tracking campaign. No recent changes, dependencies unaffected, encountering timeout issues.",
+  "label_rationale": "by construction: a sudden legitimate traffic surge (sale, campaign, live event) saturates CPU or queues on all tasks; the last deploy was several days ago; dependencies are healthy; errors are only timeouts",
+  "generator": "us.amazon.nova-pro-v1:0",
+  "verifier": "us.meta.llama3-3-70b-instruct-v1:0",
+  "generated_on": "2026-10-16",
+  "verifier_allow": false,
+  "verifier_reason": "The issue is not clearly caused by a traffic surge.",
+  "removed_reason": "generator label and verifier disagree"
+ }
+]
