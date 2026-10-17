@@ -1,5 +1,7 @@
 # Demo script — DeciderGate (target < 3:00)
 
+> **Submitted cut:** `record/make_video.py` renders a 148 s version from real output: hook, pattern, code, scenes 1-5, the real Bedrock-driven agent run (recorded transcript), the Haiku comparison, the independent evaluation (tuned 100% vs independent 96.5%, second domain 97.0%), the threshold sweep, close. The beats below are the longer shot list.
+
 Public video requirement: under 3 minutes, publicly viewable. English captions; narration
 optional. This script runs the real `demo.py` and the real `bench_compare.py`; nothing is
 staged.
@@ -104,7 +106,7 @@ Let the terminal play. Narrate lightly over each verdict.
 **Caption / VO:**
 > As agents get the keys to production, the scarce thing isn't a model that decides — it's
 > a layer you can read, test, and trust that says *not yet, here's why*. DeciderGate is
-> that layer: a reusable guardrail pattern, 65 unit tests, a golden set and a held-out set,
+> that layer: a reusable guardrail pattern, 84 unit tests, a golden set and a held-out set,
 > a temporal policy, Apache-2.0.
 
 **On screen:** repo URL + `#strands-decider-2b #guardrails`.

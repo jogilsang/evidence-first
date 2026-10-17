@@ -3,3 +3,4 @@ __pycache__/
 *.log
 .pytest_cache/
 .omc/
+record/demo_video.mp4

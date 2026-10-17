@@ -46,13 +46,36 @@ Bedrock LLM deciding directly:
 | latency (median) | ~141 ms | ~1091 ms |
 | API cost / 22 cases | $0 | ~$0.010 |
 
-Same correctness, ~8× faster, nothing billed per call. And it reached 100% the honest way:
+Same correctness on our golden set, ~8× faster, nothing billed per call. And it reached 100% on the sets we wrote the honest way:
 the first version missed cases on the golden set and later on a held-out set, and each was
 fixed by **naming a missing pattern in one narrow question and adding cases** — not a
 larger model. Golden 100% (22 cases), held-out 100% (20 never-seen cases). The full
 before→after and the two tuning passes are in [`PATTERN_NOTES.md`](PATTERN_NOTES.md).
 (Bedrock latency is over the public endpoint and varies by network; Haiku 4.5 priced $1/$5
 per 1M tokens, us-east-1, 2026-10.)
+
+## On data we did not write
+
+The golden (22) and held-out (20) sets were written by the same author and model family that built the gate, so the
+100% above is a tuned number. To check it, a **non-Anthropic model (Amazon Nova Pro) wrote 120 incident logs against the
+frozen policy, and a third model (Llama 3.3 70B) independently labelled them**; the 5 cases they disagreed on were quarantined, not dropped.
+Full protocol, every error and the per-family table are in [`evalkit/RESULTS.md`](evalkit/RESULTS.md).
+
+| set | cases | gate | Bedrock Haiku 4.5 |
+|---|---|---|---|
+| golden (tuned on) | 22 | 100% | 100% |
+| held-out (our own) | 20 | 100% | n/a |
+| **independent** | 115 | **96.5%** (4 false allows) | 95.7% (5 false blocks, one ambiguous family) |
+| robustness: typos / reorder | 115 each | 96.5% / 98.3% | 95.7% / 97.4% |
+| robustness: **noise lines** / Korean | 115 each | **90.4%** / 93.9% | 96.5% / 94.8% |
+
+So the honest headline is **tuned 100%, independent 96.5%**, about 7× faster than the LLM judge, and the gate is clearly weaker than a
+large model on noisy logs (a 2B classifier is easier to distract). A human has not yet reviewed the machine-verified labels
+([`evalkit/SPOT_CHECK.md`](evalkit/SPOT_CHECK.md)).
+
+**Same gate, second domain.** `rollback_gate/domains.py` defines a `GateSpec` for customer-support remedies (refund / goodwill credit)
+without touching `gate.py`: 66 independent cases, 97.0%, zero false allows. **Try to fool it** with `python play.py`;
+the misses are listed in [`docs/FOOL_THE_GATE.md`](docs/FOOL_THE_GATE.md).
 
 **Demo video.** The submission video is a rendered replay of the *real* output of `demo.py` and `analysis.py sweep` (plus the measured numbers in `bench_compare.json`); nothing is staged or hand-typed. Regenerate it with `python record/make_video.py`.
 
@@ -96,13 +119,18 @@ python demo.py --slow
 # 3. the gate as a real Strands agent (needs AWS creds for Bedrock to drive the agent)
 AWS_PROFILE=<profile> python agent.py     # eager SRE agent; gate guides a wrong rollback back
 
-# 4. tests — 65, with the model, Bedrock, Strands and OTel mocked/in-memory, no network
+# 4. tests — 84, with the model, Bedrock, Strands and OTel mocked/in-memory, no network
 python -m pytest tests/ -q
 
 # 5. the head-to-head benchmark, and the held-out validation set
 python bench_compare.py --gate            # local Decider only (no AWS)
 AWS_PROFILE=<profile> python bench_compare.py       # vs. Bedrock Haiku (golden set)
 python bench_compare.py --gate --set=holdout        # generalisation check (100%, 20 cases)
+
+# 5b. independent evaluation (Bedrock: Nova Pro writes, Llama verifies; local Decider scores)
+AWS_PROFILE=<profile> python -m evalkit.generate && python -m evalkit.score --baseline --perturb && python -m evalkit.report
+python -m evalkit.refund generate && python -m evalkit.refund score   # the second domain
+python play.py --examples                 # try to fool the gate (no AWS calls)
 
 # 6. evidence for the writeup (confusion matrix, counterfactual, cost by volume, sweep)
 python analysis.py all                    # reads the bench JSON; no model
@@ -121,8 +149,11 @@ rollback_gate/
   temporal.py    session-aware temporal policy (rate / count / cost; AgentCore-style)
   audit.py       JSONL audit log + idempotency cache (both opt-in)
   observability.py  one OpenTelemetry span per decision (opt-in)
+  domains.py     a second domain (support refunds) as a GateSpec, no change to gate.py
   advisor.py     ranks candidate actions via the Decider, confirms each through the gate
-tests/           65 unit tests (model, Bedrock, Strands & OTel mocked/in-memory)
+tests/           84 unit tests (model, Bedrock, Strands & OTel mocked/in-memory)
+evalkit/         independent evaluation: generator, verifier, perturbations, scoring, RESULTS.md
+play.py          try to fool the gate (CLI)
 agent.py         the gate wired into a Strands agent (temporal policy + audit attached)
 demo.py          five-scene narrated demo (incl. the temporal policy)
 bench_compare.py DeciderGate vs Bedrock on golden/holdout (accuracy/latency/cost)

@@ -144,3 +144,7 @@ default is deliberately a little above the plateau's lower edge, buying margin a
 allows at no accuracy cost.
 
 Reproduce: `python analysis.py sweep` (needs the local Decider server).
+
+## Update: independent evaluation
+
+The 100% above is on sets we wrote. On 115 independent cases (Nova Pro wrote, Llama 3.3 70B verified, policy frozen) the gate scores **96.5%** with 4 false allows; see `evalkit/RESULTS.md`. The tuning loop described here did not use those cases.

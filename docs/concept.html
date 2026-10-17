@@ -34,10 +34,10 @@ h1 span{color:#fdb24d}
 <div class="example"><span class="d">agent wants:</span> rollback {'to': 'previous'}&nbsp;&nbsp;<span class="d">(traffic is 4x from a campaign, no deploy for 3 days)</span><br>
 <span class="d">gate:</span> <span class="r">BLOCK</span> the log points to 'traffic_surge', not 'bad_deploy', so 'rollback' is not supported by the evidence</div>
 <div class="stats">
- <div class="stat"><div class="big">100%</div><div class="s">golden set (22 cases)</div></div>
- <div class="stat"><div class="big">100%</div><div class="s">held-out (20 cases)</div></div>
- <div class="stat"><div class="big">~8x</div><div class="s">faster than a Bedrock LLM judge</div></div>
+ <div class="stat"><div class="big">96.5%</div><div class="s">independent set (115 cases, not written by us)</div></div>
+ <div class="stat"><div class="big">100%</div><div class="s">tuned golden + held-out (42 cases)</div></div>
+ <div class="stat"><div class="big">~7x</div><div class="s">faster than a Bedrock LLM judge</div></div>
  <div class="stat"><div class="big">$0</div><div class="s">API cost per decision</div></div>
- <div class="stat"><div class="big">65</div><div class="s">unit tests, Apache-2.0</div></div>
+ <div class="stat"><div class="big">2</div><div class="s">domains, 84 unit tests, Apache-2.0</div></div>
 </div>
 </body></html>

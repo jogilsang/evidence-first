@@ -83,7 +83,7 @@ budget line, not a rounding error:
 
 (The Decider's cost is a one-off local GPU and electricity, not a per-call charge.)
 
-## The part I'm proudest of: getting to 100% the honest way
+## Getting to 100% on my own sets, the honest way
 
 The first version of the gate scored 90%, not 100%. Two incidents slipped through:
 
@@ -111,6 +111,37 @@ And the thresholds aren't balanced on a knife edge. Sweeping the main one across
 every value from 0.35 to 0.50 scores 100% on the combined set — the default sits in the
 middle of that plateau, not on a spike. The number isn't fit to the data; it's a stable
 operating region, with margin deliberately kept on the side that avoids a false *allow*.
+
+## Does it hold up on data I didn't write?
+
+A 100% on cases I wrote and tuned against proves little. So I froze the policy and let a **different model family** write the test:
+Amazon Nova Pro wrote 120 incident logs across 15 scenario families (labels fixed by construction, never by the generator), and Llama 3.3 70B
+labelled each one blind. The 5 cases where they disagreed are quarantined in the repo with a reason, not quietly removed.
+
+| | DeciderGate (local) | Bedrock Haiku 4.5 |
+|---|---|---|
+| independent set (115 cases) | **96.5%** | 95.7% |
+| the errors | 4 false allows | 5 false blocks (all one ambiguous family) |
+| latency (median) | ~147 ms | ~1076 ms |
+
+So the real number is **96.5%, not 100%**, and the gate's misses are the dangerous kind (an action wrongly approved): a traffic surge
+with a deploy mentioned three days earlier, a third-party 503, a scale-out that had already been done. I did not retune after seeing them.
+
+I also perturbed every case (typos, shuffled sentences, five unrelated healthy log lines, a Korean translation). Typos and reordering barely
+move it (96.5% and 98.3%). **Noise hurts: 90.4%, against 96.5% for the Haiku judge**, because a 2B classifier is easier to distract with
+irrelevant lines. That is the clearest place to improve it. Everything, including every error, is in the repo's `evalkit/RESULTS.md`, and
+`python play.py` lets you try to fool the gate yourself.
+
+**And it is not only about rollbacks.** The same gate guards customer-support remedies (refund, goodwill credit) with a different
+`GateSpec` and no change to `gate.py`: 66 independent cases, 97.0%, zero false allows. A blocker question for an abuse or fraud signal
+takes the place of "a dependency is saturated".
+
+## Running it with a real agent
+
+The gate sits in a Strands agent at `before_tool_call`; **Amazon Bedrock (Claude Haiku 4.5) drives the agent and the local Decider gates its
+tool calls**. On the saturated-database incident the agent reached for `scale_out` first in 5 of 5 recorded runs, and the gate sent it back
+every time with a readable reason; the agent then concluded the database was the real bottleneck. The transcripts are in `record/agent_runs/`
+(an LLM is not deterministic, so the video replays a saved run).
 
 ## The decision that only exists across actions
 
@@ -148,7 +179,7 @@ thing. All three are opt-in; none of them change a verdict.
 ## What this is not
 
 - Decider 2B is an experimental model, and this gate is a demo-scale pattern, not a production system.
-- The golden set (22 cases) and held-out set (20 cases) are small, synthetic and written by me. "Held-out" here means *never tuned on*, not *independent*. On your own incidents, expect to re-tune the thresholds, and re-run the sweep to check you are still on a plateau.
+- The golden set (22 cases) and held-out set (20 cases) are small, synthetic and written by me; the 115-case independent set is machine-written and machine-verified, and a human has not reviewed its labels yet. "Held-out" here means *never tuned on*, not *independent*. On your own incidents, expect to re-tune the thresholds, and re-run the sweep to check you are still on a plateau.
 - Latency was measured on one Apple-silicon laptop (MLX); the Bedrock figure includes public-endpoint network variance and will differ for you.
 - The gate decides whether the evidence supports an action. It does not execute the remediation; that stays with the agent and, for escalations, a human.
 
