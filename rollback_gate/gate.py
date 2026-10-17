@@ -56,14 +56,38 @@ QUESTIONS = {
 JUSTIFYING_CAUSE = {"rollback": "bad_deploy", "scale_out": "traffic_surge"}
 
 
-def build_questions(action: str, policy: "Policy | None" = None) -> dict:
+def build_questions(action: str, policy: "Policy | None" = None, spec: "GateSpec | None" = None) -> dict:
     """Questions for one review: the base set plus the action-specific repeat guard, and
     the blast-radius score question when the policy is risk-aware."""
-    q = dict(QUESTIONS)
-    q["already_tried"] = _already_tried_q(action)
+    if spec is None or spec is OPS_SPEC:
+        q = dict(QUESTIONS)
+        q["already_tried"] = _already_tried_q(action)
+    else:
+        q = {"cause": Decider.choice(spec.cause_question, spec.causes), spec.blocker_key: spec.blocker_question,
+             "already_tried": spec.repeat_question(action)}
     if policy is not None and policy.high_risk_requires > 0:
         q["blast_radius"] = BLAST_RADIUS_Q
     return q
+
+
+@dataclass(frozen=True)
+class GateSpec:
+    """Everything domain-specific about a gate, so the same pattern can guard another kind of action.
+
+    The default OPS_SPEC reproduces the original rollback / scale_out behaviour exactly. Another
+    domain supplies its own causes, the cause that justifies each action, a 'blocker' question
+    (the analogue of "a dependency is saturated") and a repeat question.
+    """
+    name: str
+    causes: dict
+    justifying: dict                      # action -> the cause that justifies it
+    cause_question: str
+    blocker_key: str                      # answer key of the blocker noul question
+    blocker_question: dict
+    repeat_question: object               # callable(action) -> noul question dict
+    blocker_reason: object                # callable(action) -> str
+    repeat_reason: str
+    unsupported_reason: object            # callable(top, needed, action) -> str
 
 
 @dataclass(frozen=True)
@@ -86,6 +110,23 @@ BLAST_RADIUS_Q = Decider.score(
     ["contained to one task or request",
      "affects one service",
      "affects users or data broadly"],
+)
+
+
+OPS_SPEC = GateSpec(
+    name="ops",
+    causes=CAUSES,
+    justifying=JUSTIFYING_CAUSE,
+    cause_question="What is the most likely root cause of this incident, judging only from the log?",
+    blocker_key="dep_saturated",
+    blocker_question=DEP_SATURATED_Q,
+    repeat_question=_already_tried_q,
+    blocker_reason=lambda action: ("a downstream dependency is saturated or failing; "
+                                   f"'{action}' does not address that -- fix the dependency first"),
+    repeat_reason=("this action was already tried and the problem persists; "
+                   "do not repeat it, look for another cause"),
+    unsupported_reason=lambda top, needed, action: (f"the log points to '{top}', not '{needed}', so '{action}' "
+                                                    "is not supported by the evidence"),
 )
 
 
@@ -128,7 +169,7 @@ def _repeat_score(answers: dict) -> float:
     return 0.0
 
 
-def judge(answers: dict, action: str, policy: Policy = Policy()) -> Verdict:
+def judge(answers: dict, action: str, policy: Policy = Policy(), spec: GateSpec | None = None) -> Verdict:
     """Pure policy over the model's answers (no I/O, easy to unit test).
 
     Guards run in order of certainty: a repeat we have evidence of, then a dependency we
@@ -139,21 +180,20 @@ def judge(answers: dict, action: str, policy: Policy = Policy()) -> Verdict:
     """
     probs = answers["cause"]["probabilities"]
     repeat = _repeat_score(answers)
-    dep = answers.get("dep_saturated", {}).get("noul", 0.0)
+    spec = spec or OPS_SPEC
+    dep = answers.get(spec.blocker_key, {}).get("noul", 0.0)
     scores = {"cause_probs": probs, "already_tried": repeat, "dep_saturated": dep}
     # blast radius is a 0..2 score when the risk question was asked; higher = wider impact
     risk = answers.get("blast_radius", {}).get("score")
     if risk is not None:
         scores["blast_radius"] = risk
-    needed = JUSTIFYING_CAUSE.get(action)
+    needed = spec.justifying.get(action)
     if needed is None:
         return Verdict(True, f"'{action}' is not gated", scores)
     if repeat >= policy.repeat_prob:
-        return Verdict(False, "this action was already tried and the problem persists; "
-                       "do not repeat it, look for another cause", scores)
+        return Verdict(False, spec.repeat_reason, scores)
     if dep >= policy.dep_block_prob:
-        return Verdict(False, "a downstream dependency is saturated or failing; "
-                       f"'{action}' does not address that -- fix the dependency first", scores)
+        return Verdict(False, spec.blocker_reason(action), scores)
 
     cause_p = probs.get(needed, 0.0)
     top = max(probs, key=probs.get)
@@ -171,8 +211,9 @@ def judge(answers: dict, action: str, policy: Policy = Policy()) -> Verdict:
                   "high blast radius and the evidence is borderline -- a human should decide"
             return Verdict(reason=f"evidence for '{action}' is borderline ({cause_p:.2f}); {why}",
                            scores=scores, decision="escalate")
-        return Verdict(False, f"the log points to '{top}', not '{needed}', so '{action}' "
-                       "is not supported by the evidence", scores)
+        if top == needed:   # the right cause is the leading one but not strong enough: say so plainly
+            return Verdict(False, f"the evidence for '{action}' is too weak ({cause_p:.2f} below the {bar:.2f} bar)", scores)
+        return Verdict(False, spec.unsupported_reason(top, needed, action), scores)
     return Verdict(True, f"evidence supports '{action}'", scores)
 
 
@@ -187,7 +228,8 @@ class DeciderGate:
     """
 
     def __init__(self, decider: Decider | None = None, policy: Policy = Policy(),
-                 history=None, temporal_policy=None, audit=None, cache=None):
+                 history=None, temporal_policy=None, audit=None, cache=None, spec: GateSpec | None = None):
+        self.spec = spec or OPS_SPEC
         self.decider = decider or Decider()
         self.policy = policy
         self.history = history
@@ -206,7 +248,7 @@ class DeciderGate:
 
         # 1. temporal guard first (opt-in): a cross-action limit the single-action judge
         #    cannot see. Cheap, and it needs no model call.
-        if self.history is not None and self.temporal_policy is not None and action in JUSTIFYING_CAUSE:
+        if self.history is not None and self.temporal_policy is not None and action in self.spec.justifying:
             tv = self.history.review(action, self.temporal_policy)
             if not tv.allow:
                 v = Verdict(False, tv.reason, {"temporal": tv.counts})
@@ -215,12 +257,12 @@ class DeciderGate:
 
         # 2. the single-action evidence check (unchanged default behaviour).
         answers = self.decider.ask(render_state(log, action, args),
-                                   build_questions(action, self.policy))
-        verdict = judge(answers, action, self.policy)
+                                   build_questions(action, self.policy, self.spec))
+        verdict = judge(answers, action, self.policy, self.spec)
 
         # 3. remember only actions that actually get the green light, so the temporal
         #    window reflects what truly ran.
-        if verdict.allow and self.history is not None and action in JUSTIFYING_CAUSE:
+        if verdict.allow and self.history is not None and action in self.spec.justifying:
             self.history.record(action)
 
         if self.cache is not None:
