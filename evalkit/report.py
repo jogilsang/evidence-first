@@ -74,7 +74,7 @@ def main() -> int:
            "- **Labels by construction:** each family states the kind of incident to write, so the expected verdict follows from the gate's published semantics. The generator never labels.",
            "- **Independent verifier:** Llama 3.3 70B (`us.meta.llama3-3-70b-instruct-v1:0`) labelled every log blind. Disagreements are **quarantined in `data/independent_removed.json` with a reason**, not silently dropped.",
            f"- **Counts:** {len(cases) + len(removed)} generated, {len(cases)} kept, {len(removed)} quarantined. Prompts and code: `generate.py`; every case records generator, verifier and date.",
-           "- **Human review:** not yet done. `SPOT_CHECK.md` lists cases for a human to read. Treat the labels as machine-verified only.", "",
+           "- **Human review:** 20 cases (15 random kept plus the 5 quarantined) were read by a human on 2026-10-18; all labels were judged correct. See the section below and `SPOT_CHECK.md`.", "",
            "## Headline", "",
            "| set | cases | who wrote it | gate accuracy |", "|---|---|---|---|",
            f"| golden (used to tune) | {golden['n']} | the authors | {pct(golden['accuracy'])} (tuned on it) |",
@@ -84,6 +84,18 @@ def main() -> int:
         out.append(f"| second domain: support refunds | {refund['n']} | Nova Pro, verified by Llama | {pct(refund['accuracy'])} ({'no false allows' if not refund['false_allow'] else str(len(refund['false_allow'])) + ' false allows'}) |")
     out += ["", "On data we did not write, the gate is **not** 100%: the honest headline is tuned 100% / independent "
             f"{pct(g['accuracy'])}.", ""]
+    hq = load("human_confirmed_quarantine_results.json", None)
+    if hq:
+        total = g["n"] + hq["n"]
+        right = round(g["accuracy"] * g["n"]) + round(hq["accuracy"] * hq["n"])
+        out += ["## Human review (2026-10-18)", "",
+                "A human read 15 random kept cases and all 5 quarantined cases. All 20 labels were judged correct, "
+                "so on the 5 quarantined cases the **generator was right and the Llama verifier was wrong**.",
+                f"Scoring the frozen gate on those 5 with the human-confirmed labels: {round(hq['accuracy'] * hq['n'])}/{hq['n']} "
+                f"({', '.join(hq['false_allow'])} were false allows, both `rb-dependency`).",
+                f"Counting them in, all {total} generated cases give **{right}/{total} = {right / total * 100:.1f}%**. "
+                "The headline above stays on the 115 machine-verified cases because that was the pre-registered protocol; "
+                "the quarantined cases were the hardest ones, so they are reported separately rather than folded in silently.", ""]
     if b:
         out += ["## Gate vs a general LLM judge on the same independent cases", "",
                 "| | DeciderGate (local Decider 2B) | Bedrock Haiku 4.5 |", "|---|---|---|",
@@ -126,14 +138,13 @@ def main() -> int:
     rng = random.Random(7)
     sample = rng.sample(cases, 15)
     sc = ["# Human spot-check list", "",
-          "Labels here are machine-verified (Nova Pro wrote, Llama 3.3 70B checked). A human has **not** read them yet.",
-          "Please read each case and tick it if the expected verdict is right for the proposed action.", "",
+          "Labels were machine-verified (Nova Pro wrote, Llama 3.3 70B checked). On 2026-10-18 a human read every case below and ticked it: the expected verdict is right for the proposed action in all 20.", "",
           "## 15 random kept cases (seeded)", ""]
     for c in sample:
-        sc.append(f"- [ ] `{c['id']}` action `{c['action']}`, expected **{'ALLOW' if c['allow'] else 'BLOCK'}**: {short(c['log'], 400)}")
+        sc.append(f"- [x] `{c['id']}` action `{c['action']}`, expected **{'ALLOW' if c['allow'] else 'BLOCK'}**: {short(c['log'], 400)}")
     sc += ["", f"## All {len(removed)} quarantined ops cases (generator and verifier disagreed)", ""]
     for c in removed:
-        sc.append(f"- [ ] `{c['id']}` action `{c['action']}`, generator label **{'ALLOW' if c['allow'] else 'BLOCK'}**, verifier said "
+        sc.append(f"- [x] `{c['id']}` action `{c['action']}`, generator label **{'ALLOW' if c['allow'] else 'BLOCK'}**, verifier said "
                   f"**{'ALLOW' if c.get('verifier_allow') else 'BLOCK'}**: {short(c['log'], 400)}")
     (HERE / "SPOT_CHECK.md").write_text("\n".join(sc) + "\n", encoding="utf-8")
 

@@ -1,0 +1,71 @@
+{
+ "rows": [
+  {
+   "id": "ind-rb-dependency-1",
+   "family": "rb-dependency",
+   "action": "rollback",
+   "expected": false,
+   "got": false,
+   "ok": true,
+   "reason": "a downstream dependency is saturated or failing; 'rollback' does not address that -- fix the dependency first",
+   "log": "The feed-service is experiencing high latency and intermittent errors since the last deploy 48 hours ago, with database connection pool exhaustion suspected as the cause.",
+   "latency_ms": 13440.41
+  },
+  {
+   "id": "ind-rb-dependency-3",
+   "family": "rb-dependency",
+   "action": "rollback",
+   "expected": false,
+   "got": true,
+   "ok": false,
+   "reason": "evidence supports 'rollback'",
+   "log": "Match-engine performance has degraded significantly with frequent timeouts, correlated with the last deployment 72 hours ago, suggesting problems with the multiplayer game backend services.",
+   "latency_ms": 152.09
+  },
+  {
+   "id": "ind-rb-dependency-4",
+   "family": "rb-dependency",
+   "action": "rollback",
+   "expected": false,
+   "got": true,
+   "ok": false,
+   "reason": "evidence supports 'rollback'",
+   "log": "Payments-gw is intermittently failing transactions with a 503 response from the payment/auth API, an issue that surfaced after the deploy two days prior.",
+   "latency_ms": 229.99
+  },
+  {
+   "id": "ind-so-surge-2",
+   "family": "so-surge",
+   "action": "scale_out",
+   "expected": true,
+   "got": true,
+   "ok": true,
+   "reason": "evidence supports 'scale_out'",
+   "log": "feed-service is under heavy load with increased CPU utilization and queue lengths, correlating with the live event streaming. No deploys in the last few days, healthy dependencies, timeout errors observed.",
+   "latency_ms": 273.05
+  },
+  {
+   "id": "ind-so-surge-3",
+   "family": "so-surge",
+   "action": "scale_out",
+   "expected": true,
+   "got": true,
+   "ok": true,
+   "reason": "evidence supports 'scale_out'",
+   "log": "ledger-svc is reporting high CPU usage and backlog in processing tasks, coinciding with the launch of a new logistics tracking campaign. No recent changes, dependencies unaffected, encountering timeout issues.",
+   "latency_ms": 184.31
+  }
+ ],
+ "n": 5,
+ "accuracy": 0.6,
+ "false_allow": [
+  "ind-rb-dependency-3",
+  "ind-rb-dependency-4"
+ ],
+ "false_block": [],
+ "per_family": {
+  "rb-dependency": "1/3",
+  "so-surge": "2/2"
+ },
+ "latency_ms_median": 230.0
+}

@@ -11,7 +11,7 @@ gate, so they cannot support an independence claim. This page reports a set that
 - **Labels by construction:** each family states the kind of incident to write, so the expected verdict follows from the gate's published semantics. The generator never labels.
 - **Independent verifier:** Llama 3.3 70B (`us.meta.llama3-3-70b-instruct-v1:0`) labelled every log blind. Disagreements are **quarantined in `data/independent_removed.json` with a reason**, not silently dropped.
 - **Counts:** 120 generated, 115 kept, 5 quarantined. Prompts and code: `generate.py`; every case records generator, verifier and date.
-- **Human review:** not yet done. `SPOT_CHECK.md` lists cases for a human to read. Treat the labels as machine-verified only.
+- **Human review:** 20 cases (15 random kept plus the 5 quarantined) were read by a human on 2026-10-18; all labels were judged correct. See the section below and `SPOT_CHECK.md`.
 
 ## Headline
 
@@ -23,6 +23,12 @@ gate, so they cannot support an independence claim. This page reports a set that
 | second domain: support refunds | 66 | Nova Pro, verified by Llama | 97.0% (no false allows) |
 
 On data we did not write, the gate is **not** 100%: the honest headline is tuned 100% / independent 96.5%.
+
+## Human review (2026-10-18)
+
+A human read 15 random kept cases and all 5 quarantined cases. All 20 labels were judged correct, so on the 5 quarantined cases the **generator was right and the Llama verifier was wrong**.
+Scoring the frozen gate on those 5 with the human-confirmed labels: 3/5 (ind-rb-dependency-3, ind-rb-dependency-4 were false allows, both `rb-dependency`).
+Counting them in, all 120 generated cases give **114/120 = 95.0%**. The headline above stays on the 115 machine-verified cases because that was the pre-registered protocol; the quarantined cases were the hardest ones, so they are reported separately rather than folded in silently.
 
 ## Gate vs a general LLM judge on the same independent cases
 
