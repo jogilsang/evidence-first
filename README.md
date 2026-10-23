@@ -29,6 +29,10 @@ cause*, *was this action already tried*, *is a dependency saturated* — and a `
 thresholds live in code decides. That means you tune the guardrail by editing a few lines
 and re-running a golden set, not by swapping in a bigger model.
 
+## Replay the evaluation (no model needed)
+
+`evalkit/replay.ipynb` recomputes every headline number (independent set, per-family table, the gate's misses, perturbations, the refund domain) from the saved per-case data in `evalkit/data/`. It checks the stored summaries against the rows and needs no model, no Bedrock and no network.
+
 ## Architecture
 
 ![DeciderGate architecture: incident, Strands agent, the local gate with Decider 2B and policy, outcome](docs/architecture.png)
@@ -59,6 +63,7 @@ per 1M tokens, us-east-1, 2026-10.)
 The golden (22) and held-out (20) sets were written by the same author and model family that built the gate, so the
 100% above is a tuned number. To check it, a **non-Anthropic model (Amazon Nova Pro) wrote 120 incident logs against the
 frozen policy, and a third model (Llama 3.3 70B) independently labelled them**; the 5 cases they disagreed on were quarantined, not dropped.
+A human then read 20 cases (15 random plus the 5 quarantined): all labels were right, and the gate scores 3/5 on the quarantined ones (114/120 = 95.0% overall).
 Full protocol, every error and the per-family table are in [`evalkit/RESULTS.md`](evalkit/RESULTS.md).
 
 | set | cases | gate | Bedrock Haiku 4.5 |
@@ -70,14 +75,14 @@ Full protocol, every error and the per-family table are in [`evalkit/RESULTS.md`
 | robustness: **noise lines** / Korean | 115 each | **90.4%** / 93.9% | 96.5% / 94.8% |
 
 So the honest headline is **tuned 100%, independent 96.5%**, about 7× faster than the LLM judge, and the gate is clearly weaker than a
-large model on noisy logs (a 2B classifier is easier to distract). A human has not yet reviewed the machine-verified labels
-([`evalkit/SPOT_CHECK.md`](evalkit/SPOT_CHECK.md)).
+large model on noisy logs (a 2B classifier is easier to distract). A human reviewed 20 of the machine-verified labels
+([`evalkit/SPOT_CHECK.md`](evalkit/SPOT_CHECK.md)) and agreed with all of them.
 
 **Same gate, second domain.** `rollback_gate/domains.py` defines a `GateSpec` for customer-support remedies (refund / goodwill credit)
 without touching `gate.py`: 66 independent cases, 97.0%, zero false allows. **Try to fool it** with `python play.py`;
 the misses are listed in [`docs/FOOL_THE_GATE.md`](docs/FOOL_THE_GATE.md).
 
-**Demo video.** The submission video is a rendered replay of the *real* output of `demo.py` and `analysis.py sweep` (plus the measured numbers in `bench_compare.json`); nothing is staged or hand-typed. Regenerate it with `python record/make_video.py`.
+**Demo video.** The submission video is a rendered replay of the *real* output of `demo.py` and `analysis.py sweep` (plus the measured numbers in `bench_compare.json`); nothing is staged or hand-typed. It has English captions and an English voice-over (macOS `say`, generated locally). Regenerate it with `python record/make_video.py`.
 
 ## What's reusable here
 

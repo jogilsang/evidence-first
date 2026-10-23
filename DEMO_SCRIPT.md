@@ -1,6 +1,6 @@
 # Demo script — DeciderGate (target < 3:00)
 
-> **Submitted cut:** `record/make_video.py` renders a 148 s version from real output: hook, pattern, code, scenes 1-5, the real Bedrock-driven agent run (recorded transcript), the Haiku comparison, the independent evaluation (tuned 100% vs independent 96.5%, second domain 97.0%), the threshold sweep, close. The beats below are the longer shot list.
+> **Submitted cut:** `record/make_video.py` renders a ~168 s version (English captions plus English voice-over from the macOS `say` voice; no cloud call) from real output: hook, pattern, code, scenes 1-5, the real Bedrock-driven agent run (recorded transcript), the Haiku comparison, the independent evaluation (tuned 100% vs independent 96.5%, second domain 97.0%), the threshold sweep, close. The beats below are the longer shot list.
 
 Public video requirement: under 3 minutes, publicly viewable. English captions; narration
 optional. This script runs the real `demo.py` and the real `bench_compare.py`; nothing is
