@@ -194,6 +194,39 @@ def agent_lines(path: Path):
     return keep
 
 
+VOICE = "Samantha"  # macOS built-in English voice; no cloud call, nothing leaves the machine
+VOICE_RATE = 175    # words per minute
+
+
+def narrate(marks, states, tmp):
+    """Speak each marked group; stretch the group's last state if the speech is longer. Returns the audio file (or None)."""
+    if not marks or subprocess.run(["which", "say"], capture_output=True).returncode != 0:
+        return None
+    bounds = [m[0] for m in marks] + [len(states)]
+    parts = []
+    for k, (start, text) in enumerate(marks):
+        aiff = tmp / f"n{k}.aiff"
+        subprocess.run(["say", "-v", VOICE, "-r", str(VOICE_RATE), "-o", str(aiff), text], check=True)
+        dur = float(subprocess.run(["ffprobe", "-v", "error", "-show_entries", "format=duration", "-of", "csv=p=0", str(aiff)],
+                                   capture_output=True, text=True, check=True).stdout)
+        end = bounds[k + 1]
+        group = sum(s for _, s in states[start:end])
+        need = dur + 0.8  # leave a breath before the next group
+        if need > group:
+            im, sec = states[end - 1]
+            states[end - 1] = (im, sec + (need - group))
+            group = need
+        wav = tmp / f"n{k}.wav"
+        subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-i", str(aiff), "-ar", "44100", "-ac", "1",
+                        "-af", f"apad=whole_dur={group:.3f}", "-t", f"{group:.3f}", str(wav)], check=True)
+        parts.append(wav)
+    lst = tmp / "narr.txt"
+    lst.write_text("\n".join(f"file '{p}'" for p in parts))
+    out = tmp / "narration.wav"
+    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(lst), str(out)], check=True)
+    return out
+
+
 def build(out_mp4: Path):
     py = sys.executable
     demo = run([py, "demo.py"]).splitlines()
@@ -223,8 +256,17 @@ def build(out_mp4: Path):
         "Scene 5: same evidence twice. The second rollback is blocked by a rule that spans actions, before the model is asked.",
     ]
     states = []
+    marks = []  # (index of first state of a narrated group, spoken text)
+
+    def mark(text):
+        marks.append((len(states), text))
+
+    mark("An AI agent that can act on your infrastructure is one confident wrong decision away from an outage. "
+         "The danger is not that it cannot decide. It decides confidently, and wrong.")
     states.append((card_frame("DeciderGate", "An AI agent that can act on your infrastructure is one confident wrong decision away from an outage.",
                               "The danger is not that an agent cannot decide. It decides confidently, and wrong."), 7))
+    mark("DeciderGate puts a calm second opinion in front of the agent. A small local Strands Decider two B model answers narrow, typed questions. "
+         "Plain Python policy turns the answers into allow or block. The thresholds live in code, not in a prompt.")
     states.append((card_frame("The model classifies. The code decides.", "A local Strands Decider 2B answers narrow typed questions; plain-Python policy turns them into allow or block.",
                               "The thresholds live in code, not in a prompt.", big=False), 6))
     code_a = [('QUESTIONS = {', FG), ('    "cause":         Decider.choice("What is the most likely root cause ...", CAUSES),', FG),
@@ -234,12 +276,23 @@ def build(out_mp4: Path):
                        ("    min_cause_prob: float = 0.45   # thresholds live here, not in the model", GOLD),
                        ("    repeat_prob:    float = 0.50", FG), ("    dep_block_prob: float = 0.50", FG)]
     capc = "gate.py: three narrow questions to the model, and a Policy of thresholds owned by the code."
+    mark("Here is the whole idea. Three questions: what is the likely cause, is a dependency failing, was this already tried. "
+         "And a Policy dataclass that holds every threshold.")
     states.append((terminal_frame([[(t, c)] for t, c in code_a], capc, title="rollback_gate/gate.py"), 4))
     states.append((terminal_frame([[(t, c)] for t, c in code_b], capc, title="rollback_gate/gate.py"), 5))
 
     holds = {"head": 1.0, "line": 1.5, "gate": 2.4, "why": 2.8, "end": 1.0}
-    for sc, cap in zip(scenes[:4], caps[:4]):
+    scene_say = [
+        "Scene one. A deploy, then errors. A rollback is justified, so the gate allows it.",
+        "Scene two. No deploy for three days; this is a marketing traffic surge. The agent still wants to roll back, and the gate blocks it, with a reason you can read.",
+        "Scene three. It already rolled back and the errors persist. The gate will not let the agent repeat the same move.",
+        "Scene four, the trap. The database is saturated, but the log reads like a bad deploy. A second question about dependencies catches it.",
+    ]
+    for sc, cap, say_ in zip(scenes[:4], caps[:4], scene_say):
+        mark(say_)
         states += scene_states(sc, cap, holds)
+    mark("Scene five. The same evidence twice. The first rollback is allowed. The second is blocked by a rule that spans actions, "
+         "before the model is even asked.")
     shown = []
     for ln in scenes[4]:
         if not clean(ln).strip():
@@ -253,6 +306,8 @@ def build(out_mp4: Path):
         capa = (f"Amazon Bedrock (Claude Haiku 4.5) drives the Strands agent; the local Decider gates its tool calls. "
                 f"In {blocked} of {len(runs)} recorded runs the agent reached for a remediation first and the gate sent it back.")
         title_a = "sre-demo ~/decider-gate $ python agent.py"
+        mark(f"Now the real thing. Amazon Bedrock, Claude Haiku four point five, drives a Strands agent, and the local Decider gates its tool calls. "
+             f"In {blocked} of {len(runs)} recorded runs the agent reached for scale out first, and the gate sent it back.")
         shown = []
         for i, ln in enumerate(agent_lines(runs[0])):
             shown += wrap_spans(parse_ansi(ln), 112)
@@ -264,6 +319,7 @@ def build(out_mp4: Path):
             ["accuracy (22 cases)", f"{g['accuracy']*100:.0f}%", f"{b['accuracy']*100:.0f}%"],
             ["latency (median)", f"~{g['latency_ms_median']:.0f} ms", f"~{b['latency_ms_median']:.0f} ms"],
             ["API cost / 22 cases", "$0", f"~${b['api_cost_usd']:.3f}"]]
+    mark(f"Against a general LLM judge on Bedrock, the same accuracy on our golden set, about {ratio:.0f} times faster, and nothing billed per call, because the Decider runs locally.")
     states.append((table_frame(rows, f"Same accuracy on our golden set, about {ratio:.0f}x faster, nothing billed per call: the Decider runs locally.",
                                "Decider gate vs a general LLM judge, same incidents"), 9))
 
@@ -273,19 +329,25 @@ def build(out_mp4: Path):
              ["held-out (written by us)", f"{ho['n']}", f"{ho['accuracy']*100:.1f}%"],
              ["independent (Nova Pro, Llama-verified)", f"{gi['n']}", f"{gi['accuracy']*100:.1f}%"],
              ["second domain: support refunds", f"{refund['n']}", f"{refund['accuracy']*100:.1f}%"]]
+    mark(f"But we tuned on that set, so we also tested on cases we did not write. Amazon Nova Pro wrote them, and Llama verified the labels. "
+         f"The gate scores {gi['accuracy']*100:.1f} percent there, not 100. A human then checked twenty of the cases. "
+         "The same gate also guards a second domain: support refunds.")
     states.append((table_frame(rows2, f"On cases we did not write the gate is not 100%: {gi['accuracy']*100:.1f}% (Haiku {bi['accuracy']*100:.1f}%), about "
                                f"{bi['latency_ms_median']/gi['latency_ms_median']:.0f}x faster. The same gate also guards a second domain.",
                                "Honest evaluation on independent data", cols=(620, 200, 330)), 13))
 
+    mark("And the main threshold sits on a plateau: every value from point three five to point five zero scores 100 percent on the tuned sets.")
     sw = [clean(ln) for ln in sweep if ln.strip()]
     states.append((terminal_frame([w for t in sw for w in wrap_spans([(t, FG)], 112)],
                                   "Sweeping the main threshold: every value from 0.35 to 0.50 scores 100% on the tuned sets. A plateau, not a knife edge.",
                                   title="python analysis.py sweep"), 6))
+    mark("DeciderGate is open source under Apache two point zero. Lift the pattern into your own agent. Evidence first, then action.")
     states.append((card_frame("Open source, Apache-2.0", f"{n_tests} unit tests · two domains · independent evaluation · temporal policy · audit log. Lift the pattern into your own agent.",
                               "#strands-decider-2b   #guardrails", big=False), 7))
 
     tmp = ROOT / "record" / "_frames"
     tmp.mkdir(exist_ok=True)
+    narr = narrate(marks, states, tmp)
     lst = []
     for i, (im, sec) in enumerate(states):
         p = tmp / f"f{i:04d}.png"
@@ -294,8 +356,10 @@ def build(out_mp4: Path):
     lst.append(f"file '{tmp / f'f{len(states)-1:04d}.png'}'")
     (tmp / "list.txt").write_text("\n".join(lst))
     total = sum(s for _, s in states)
-    subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(tmp / "list.txt"),
-                    "-vf", "fps=30,format=yuv420p", "-c:v", "libx264", "-crf", "20", "-movflags", "+faststart", str(out_mp4)], check=True)
+    cmd = ["ffmpeg", "-y", "-loglevel", "error", "-f", "concat", "-safe", "0", "-i", str(tmp / "list.txt")]
+    if narr:
+        cmd += ["-i", str(narr), "-c:a", "aac", "-b:a", "128k", "-shortest"]
+    subprocess.run(cmd + ["-vf", "fps=30,format=yuv420p", "-c:v", "libx264", "-crf", "20", "-movflags", "+faststart", str(out_mp4)], check=True)
     for f in tmp.glob("*"):
         f.unlink()
     tmp.rmdir()
